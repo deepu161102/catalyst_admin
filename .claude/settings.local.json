@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(grep -rn \"page: { padding: 24, height: '100%', overflowY: 'auto'\" --include=\"*.jsx\" -l)",
+      "Bash(npx tailwindcss:*)"
+    ]
+  }
+}

@@ -1,0 +1,139 @@
+// ============================================================
+// OPERATIONS SIDEBAR — Purple-themed navigation
+// ============================================================
+
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import catalystLogo from '../../assets/catalyst-logo.png';
+
+const icons = {
+  dashboard: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
+  mentors:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  students:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
+  batches:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>,
+  reports:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+  chevLeft:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+  chevRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  logout:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+};
+
+const NAV = [
+  { section: 'DASHBOARD', items: [
+    { key: 'dashboard', label: 'Overview', path: '/operations/dashboard', icon: icons.dashboard },
+  ]},
+  { section: 'MANAGEMENT', items: [
+    { key: 'mentors',  label: 'Mentors',  path: '/operations/mentors',  icon: icons.mentors,  color: '#7c3aed' },
+    { key: 'students', label: 'Students', path: '/operations/students', icon: icons.students, color: '#ec4899' },
+    { key: 'batches',  label: 'Batches',  path: '/operations/batches',  icon: icons.batches,  color: '#f59e0b' },
+  ]},
+  { section: 'TOOLS', items: [
+    { key: 'reports', label: 'Reports', path: '/operations/reports', icon: icons.reports, color: '#10b981' },
+  ]},
+];
+
+export default function OpsSidebar({ collapsed, onToggle }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuth();
+
+  const isActive = (path) => location.pathname.startsWith(path);
+
+  return (
+    <aside
+      className="h-screen bg-white border-r border-gray-200 flex flex-col overflow-hidden shrink-0 sidebar-transition"
+      style={{ width: collapsed ? 72 : 260 }}
+    >
+      {/* Logo */}
+      <div className="h-16 px-4 flex items-center gap-2.5 border-b border-gray-100 shrink-0">
+        {collapsed ? (
+          <div className="w-9 h-9 overflow-hidden shrink-0 flex items-center">
+            <img src={catalystLogo} alt="Catalyst" className="h-9 w-auto shrink-0" />
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col gap-0.5 overflow-hidden min-w-0">
+            <img src={catalystLogo} alt="Catalyst" className="h-[30px] w-auto object-contain object-left max-w-[150px]" />
+            <span className="text-[11px] text-ops-primary font-semibold pl-0.5">Operations</span>
+          </div>
+        )}
+        <button
+          className="w-7 h-7 rounded-lg flex items-center justify-center bg-gray-100 shrink-0 ml-auto hover:bg-gray-200 transition-colors"
+          onClick={onToggle}
+          title={collapsed ? 'Expand' : 'Collapse'}
+        >
+          <span className="w-4 h-4 block text-gray-400">
+            {collapsed ? icons.chevRight : icons.chevLeft}
+          </span>
+        </button>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-3">
+        {NAV.map((section) => (
+          <div key={section.section} className="mb-2">
+            {!collapsed && (
+              <span className="block text-[10px] font-bold text-ops-primary uppercase tracking-[0.8px] px-5 pt-2 pb-1">
+                {section.section}
+              </span>
+            )}
+            {section.items.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <button
+                  key={item.key}
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-[9px] my-px rounded-[10px] transition-colors ${
+                    active ? 'bg-ops-lighter' : 'hover:bg-gray-50'
+                  } ${collapsed ? 'justify-center' : 'justify-start'}`}
+                  onClick={() => navigate(item.path)}
+                  title={collapsed ? item.label : ''}
+                >
+                  <span
+                    className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0"
+                    style={{
+                      color: active ? '#7c3aed' : (item.color || '#6b7280'),
+                      background: active ? 'rgba(124,58,237,0.12)' : 'transparent',
+                    }}
+                  >
+                    {item.icon}
+                  </span>
+                  {!collapsed && (
+                    <span
+                      className={`text-sm whitespace-nowrap flex-1 text-left ${
+                        active ? 'text-ops-primary font-semibold' : 'text-gray-700 font-normal'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div className="px-3.5 py-3 border-t border-gray-100 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2.5 overflow-hidden">
+          <div className="w-[34px] h-[34px] rounded-full bg-gradient-to-br from-ops-primary to-purple-400 text-white font-bold text-[13px] flex items-center justify-center shrink-0">
+            {user?.avatar || 'U'}
+          </div>
+          {!collapsed && (
+            <div className="overflow-hidden">
+              <div className="text-[13px] font-semibold text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis max-w-[130px]">
+                {user?.name}
+              </div>
+              <div className="text-[11px] text-ops-primary font-medium">Operations</div>
+            </div>
+          )}
+        </div>
+        <button
+          className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 shrink-0 hover:bg-gray-200 transition-colors"
+          onClick={() => { logout(); navigate('/'); }}
+          title="Logout"
+        >
+          <span className="w-[18px] h-[18px] block text-gray-500">{icons.logout}</span>
+        </button>
+      </div>
+    </aside>
+  );
+}
