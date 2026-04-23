@@ -4,12 +4,15 @@
 // ============================================================
 
 import { useState } from 'react';
-import { MOCK_BATCHES, MOCK_MENTORS, MOCK_STUDENTS } from '../../../data/mockData';
+import { useNavigate } from 'react-router-dom';
+import { useData } from '../../../context/DataContext';
+import { MOCK_MENTORS } from '../../../data/mockData';
 
 const inputClass = 'w-full px-3 py-2.5 rounded-[10px] border-[1.5px] border-gray-200 text-[13px] outline-none bg-white';
 
 /* ── Create Batch Modal ──────────────────────────────────── */
 function CreateBatchModal({ onSave, onClose }) {
+  const { mentors } = useData();
   const [form, setForm] = useState({ name: '', course: '', mentorId: '', startDate: '', endDate: '', totalSessions: 60 });
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -39,7 +42,7 @@ function CreateBatchModal({ onSave, onClose }) {
               ) : type === 'mentorSelect' ? (
                 <select className={inputClass} value={form.mentorId} onChange={(e) => set('mentorId', e.target.value)}>
                   <option value="">Select mentor...</option>
-                  {MOCK_MENTORS.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  {mentors.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               ) : (
                 <input className={inputClass} type={type} placeholder={placeholder} value={form[key]} onChange={(e) => set(key, e.target.value)} />
@@ -63,9 +66,10 @@ function CreateBatchModal({ onSave, onClose }) {
 
 /* ── Main Component ──────────────────────────────────────── */
 export default function BatchesPage() {
-  const [batches, setBatches]       = useState(MOCK_BATCHES);
+  const { batches, addBatch, mentors } = useData();
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch]         = useState('');
+  const navigate = useNavigate();
 
   const filtered = batches.filter((b) =>
     b.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -81,7 +85,7 @@ export default function BatchesPage() {
       studentIds: [],
       status: 'active',
     };
-    setBatches((p) => [...p, newBatch]);
+    addBatch(newBatch);
     setShowCreate(false);
   };
 
@@ -90,7 +94,7 @@ export default function BatchesPage() {
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-xl font-extrabold text-gray-900">Batch Management</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Batches connect students with mentors and courses</p>
+          <p className="text-sm text-gray-500 mt-0.5">Click a batch to view enrolled students and manage them</p>
         </div>
         <button
           className="px-5 py-2.5 rounded-[10px] bg-ops-primary text-white font-semibold text-sm shadow-[0_4px_12px_rgba(124,58,237,0.3)]"
@@ -126,18 +130,24 @@ export default function BatchesPage() {
       {/* Batch cards */}
       <div className="grid grid-cols-3 gap-3.5">
         {filtered.map((batch) => {
-          const mentor  = MOCK_MENTORS.find((m) => m.id === batch.mentorId);
-          const pct     = Math.round((batch.completedSessions / batch.totalSessions) * 100);
+          const mentor = mentors.find((m) => m.id === batch.mentorId);
+          const pct    = Math.round((batch.completedSessions / batch.totalSessions) * 100);
 
           return (
-            <div key={batch.id} className="bg-white rounded-[14px] p-[18px] border border-gray-200 shadow-panel flex flex-col gap-0">
+            <div
+              key={batch.id}
+              className="bg-white rounded-[14px] p-[18px] border border-gray-200 shadow-panel flex flex-col gap-0 cursor-pointer hover:border-ops-primary hover:shadow-[0_4px_16px_rgba(124,58,237,0.12)] transition-all duration-150"
+              onClick={() => navigate(`/operations/batches/${batch.id}`)}
+            >
               {/* Header */}
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <p className="text-[15px] font-bold text-gray-900">{batch.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{batch.course}</p>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-800">{batch.status}</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${batch.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                  {batch.status}
+                </span>
               </div>
 
               {/* Mentor */}
@@ -175,6 +185,9 @@ export default function BatchesPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Click hint */}
+              <p className="text-[11px] text-ops-primary/60 text-center mt-2 font-medium">Click to view details →</p>
             </div>
           );
         })}

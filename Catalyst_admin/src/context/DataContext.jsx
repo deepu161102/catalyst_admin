@@ -5,12 +5,52 @@
 // ============================================================
 
 import { createContext, useContext, useState } from 'react';
-import { MOCK_MENTORS, MOCK_NOTIFICATIONS, MOCK_OPS_NOTIFICATIONS } from '../data/mockData';
+import { MOCK_MENTORS, MOCK_NOTIFICATIONS, MOCK_OPS_NOTIFICATIONS, MOCK_BATCHES, MOCK_STUDENTS } from '../data/mockData';
 
 const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
-  const [mentors, setMentors] = useState(MOCK_MENTORS);
+  const [mentors, setMentors]   = useState(MOCK_MENTORS);
+  const [batches, setBatches]   = useState(MOCK_BATCHES);
+  const [students, setStudents] = useState(MOCK_STUDENTS);
+
+  // ── Batch mutations ───────────────────────────────────────
+  const addBatch = (batch) => setBatches((p) => [...p, batch]);
+
+  const addStudentToBatch = (studentId, batchId) => {
+    setBatches((p) => p.map((b) =>
+      b.id === batchId && !b.studentIds.includes(studentId)
+        ? { ...b, studentIds: [...b.studentIds, studentId] }
+        : b
+    ));
+    setStudents((p) => p.map((s) =>
+      s.id === studentId ? { ...s, batch: batchId } : s
+    ));
+  };
+
+  const removeStudentFromBatch = (studentId, batchId) => {
+    setBatches((p) => p.map((b) =>
+      b.id === batchId
+        ? { ...b, studentIds: b.studentIds.filter((id) => id !== studentId) }
+        : b
+    ));
+    setStudents((p) => p.map((s) =>
+      s.id === studentId ? { ...s, batch: '' } : s
+    ));
+  };
+
+  const shiftStudent = (studentId, fromBatchId, toBatchId) => {
+    setBatches((p) => p.map((b) => {
+      if (b.id === fromBatchId) return { ...b, studentIds: b.studentIds.filter((id) => id !== studentId) };
+      if (b.id === toBatchId && !b.studentIds.includes(studentId)) return { ...b, studentIds: [...b.studentIds, studentId] };
+      return b;
+    }));
+    setStudents((p) => p.map((s) =>
+      s.id === studentId ? { ...s, batch: toBatchId } : s
+    ));
+  };
+
+  const addStudent = (student) => setStudents((p) => [...p, student]);
 
   // ── Mentor notifications ──────────────────────────────────
   const [mentorNotifications, setMentorNotifications] = useState(MOCK_NOTIFICATIONS);
@@ -42,6 +82,8 @@ export function DataProvider({ children }) {
   return (
     <DataContext.Provider value={{
       mentors, addMentor,
+      batches, addBatch, addStudentToBatch, removeStudentFromBatch, shiftStudent,
+      students, addStudent,
       mentorNotifications, markMentorNotifRead, markAllMentorNotifsRead, deleteMentorNotif,
       opsNotifications,    markOpsNotifRead,    markAllOpsNotifsRead,    deleteOpsNotif,
     }}>
