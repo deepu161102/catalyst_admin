@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import { chatService, studentService } from '../../../services/api';
+import { chatService, mentorService } from '../../../services/api';
 import { connectSocket, disconnectSocket } from '../../../services/socket';
 
 const sendIcon = (
@@ -27,7 +27,7 @@ function formatDate(ts) {
   return d.toLocaleDateString();
 }
 
-export default function CommunicationPage() {
+export default function OpsCommunicationPage() {
   const { user } = useAuth();
 
   const [conversations, setConversations] = useState([]);
@@ -46,19 +46,17 @@ export default function CommunicationPage() {
 
   useEffect(() => { selectedRef.current = selected; }, [selected]);
 
-  // Socket setup — token from localStorage passed in handshake auth
   useEffect(() => {
     const socket = connectSocket();
     socketRef.current = socket;
 
-    socket.on('online_users', ids     => setOnlineUsers(new Set(ids)));
+    socket.on('online_users', ids => setOnlineUsers(new Set(ids)));
     socket.on('user_online',  ({ userId }) => setOnlineUsers(p => new Set([...p, userId])));
     socket.on('user_offline', ({ userId }) => setOnlineUsers(p => { const n = new Set(p); n.delete(userId); return n; }));
 
     socket.on('receive_message', msg => {
       const cur      = selectedRef.current;
       const senderId = msg.senderId?.toString();
-
       if (cur && senderId === cur.userId?.toString()) {
         setMessages(p => [...p, msg]);
         socket.emit('message_read', { senderId: msg.senderId, receiverId: user._id });
@@ -99,18 +97,18 @@ export default function CommunicationPage() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load conversations + assigned students on mount, merge them
+  // Load conversations + all mentors on mount, merge them
   useEffect(() => {
     if (!user?._id) return;
     Promise.all([
       chatService.getConversations(user._id).then(r => r.data).catch(() => []),
-      studentService.getByMentor(user._id).then(r => r.data).catch(() => []),
-    ]).then(([convos, students]) => {
+      mentorService.getAll().then(r => r.data).catch(() => []),
+    ]).then(([convos, mentors]) => {
       const convoMap = new Map(convos.map(c => [c.userId?.toString(), c]));
       const merged = [...convos];
-      students.forEach(s => {
-        if (!convoMap.has(s._id?.toString())) {
-          merged.push({ userId: s._id, name: s.name, email: s.email, lastMessage: '', unreadCount: 0 });
+      mentors.forEach(m => {
+        if (!convoMap.has(m._id?.toString())) {
+          merged.push({ userId: m._id, name: m.name, email: m.email, lastMessage: '', unreadCount: 0 });
         }
       });
       setConversations(merged);
@@ -131,15 +129,13 @@ export default function CommunicationPage() {
     ));
   }, [selected?.userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Debounced search
   useEffect(() => {
-    if (!search.trim()) { setSearchResults([]); return; }
     const t = setTimeout(() => {
+      if (!search.trim()) { setSearchResults([]); return; }
       chatService.searchUsers(search).then(res => setSearchResults(res.data)).catch(console.error);
     }, 300);
     return () => clearTimeout(t);
@@ -196,18 +192,18 @@ export default function CommunicationPage() {
     <div className="p-6 flex flex-col gap-4 fade-in">
       <div>
         <h2 className="text-xl font-extrabold text-gray-900">Communication</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Chat with your students in real-time</p>
+        <p className="text-sm text-gray-500 mt-0.5">Chat with mentors in real-time</p>
       </div>
 
       <div className="flex bg-white rounded-2xl border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
-        {/* ── Contact list ── */}
+        {/* Contact list */}
         <div className="w-[240px] border-r border-gray-100 flex flex-col shrink-0">
           <div className="px-3.5 pt-3.5 pb-2.5 border-b border-gray-100">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.5px] mb-2">Students</p>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.5px] mb-2">Mentors</p>
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-[6px]">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input
-                placeholder="Search students..."
+                placeholder="Search mentors..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="flex-1 border-none bg-transparent text-[12px] text-gray-900 outline-none placeholder:text-gray-400"
@@ -217,9 +213,7 @@ export default function CommunicationPage() {
 
           <div className="flex-1 overflow-y-auto">
             {contactList.length === 0 ? (
-              <p className="text-[12px] text-gray-400 text-center px-3 py-6">
-                {search ? 'No students found' : 'No conversations yet — search to start one'}
-              </p>
+              <p className="text-[12px] text-gray-400 text-center px-3 py-6">No mentors found</p>
             ) : (
               contactList.map(contact => (
                 <button
@@ -227,7 +221,7 @@ export default function CommunicationPage() {
                   onClick={() => handleSelectContact(contact)}
                   className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 transition-colors text-left ${
                     selected?.userId?.toString() === contact.userId?.toString()
-                      ? 'bg-teal-50 border-r-[3px] border-r-teal-600'
+                      ? 'bg-purple-50 border-r-[3px] border-r-purple-600'
                       : 'hover:bg-gray-50'
                   }`}
                 >
@@ -253,7 +247,7 @@ export default function CommunicationPage() {
                       <span className="text-[10px] text-gray-400">{formatTime(contact.lastTime)}</span>
                     )}
                     {contact.unreadCount > 0 && (
-                      <span className="bg-teal-600 text-white text-[10px] font-bold px-1.5 py-[2px] rounded-full min-w-[18px] text-center">
+                      <span className="bg-purple-600 text-white text-[10px] font-bold px-1.5 py-[2px] rounded-full min-w-[18px] text-center">
                         {contact.unreadCount}
                       </span>
                     )}
@@ -264,10 +258,9 @@ export default function CommunicationPage() {
           </div>
         </div>
 
-        {/* ── Chat window ── */}
+        {/* Chat window */}
         {selected ? (
           <div className="flex-1 flex flex-col">
-            {/* Header */}
             <div className="px-4 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
               <div className="relative">
                 <div
@@ -284,7 +277,7 @@ export default function CommunicationPage() {
                 <p className="text-sm font-bold text-gray-900">{selected.name}</p>
                 <p className="text-[11px] font-medium">
                   {typing
-                    ? <span className="text-teal-600">typing...</span>
+                    ? <span className="text-purple-600">typing...</span>
                     : <span className={onlineUsers.has(selected.userId?.toString()) ? 'text-emerald-500' : 'text-gray-400'}>
                         {onlineUsers.has(selected.userId?.toString()) ? '● Online' : '○ Offline'}
                       </span>
@@ -293,7 +286,6 @@ export default function CommunicationPage() {
               </div>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-1 bg-gray-50">
               {Object.entries(grouped).map(([date, msgs]) => (
                 <div key={date}>
@@ -310,7 +302,7 @@ export default function CommunicationPage() {
                           <div
                             className="px-3.5 py-2 rounded-[14px] text-[13px] leading-relaxed"
                             style={{
-                              background: isMe ? '#0d9488' : '#ffffff',
+                              background: isMe ? '#7c3aed' : '#ffffff',
                               color: isMe ? '#fff' : '#374151',
                               border: isMe ? 'none' : '1px solid #e5e7eb',
                               borderBottomRightRadius: isMe ? 4 : 14,
@@ -341,10 +333,9 @@ export default function CommunicationPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
             <div className="px-4 py-3 border-t border-gray-100 flex gap-2 bg-white">
               <input
-                className="flex-1 px-3.5 py-2.5 rounded-[10px] border-[1.5px] border-gray-200 text-[13px] text-gray-900 outline-none focus:border-teal-500 transition-colors"
+                className="flex-1 px-3.5 py-2.5 rounded-[10px] border-[1.5px] border-gray-200 text-[13px] text-gray-900 outline-none focus:border-purple-500 transition-colors"
                 placeholder={`Message ${selected.name}...`}
                 value={input}
                 onChange={e => setInput(e.target.value)}
@@ -353,7 +344,7 @@ export default function CommunicationPage() {
               <button
                 onClick={handleSend}
                 style={{ opacity: input.trim() ? 1 : 0.45 }}
-                className="w-10 h-10 rounded-[10px] bg-teal-600 text-white flex items-center justify-center shrink-0 transition-opacity hover:opacity-90"
+                className="w-10 h-10 rounded-[10px] bg-purple-600 text-white flex items-center justify-center shrink-0 transition-opacity hover:opacity-90"
               >
                 {sendIcon}
               </button>
@@ -364,8 +355,8 @@ export default function CommunicationPage() {
             <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </div>
-            <p className="text-sm font-medium text-gray-500">Select a student to start chatting</p>
-            <p className="text-[13px] text-gray-400">Use the search bar to find a student</p>
+            <p className="text-sm font-medium text-gray-500">Select a mentor to start chatting</p>
+            <p className="text-[13px] text-gray-400">Use the search bar to find someone</p>
           </div>
         )}
       </div>
