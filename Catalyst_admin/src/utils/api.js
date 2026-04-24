@@ -3,7 +3,7 @@
 // Automatically attaches JWT token to every request
 // ============================================================
 
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // ── Core request function ────────────────────────────────────
 const request = async (endpoint, options = {}) => {
