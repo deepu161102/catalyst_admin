@@ -15,7 +15,6 @@ const PAGE_TITLES = {
   '/operations/batches':       'Batch Management',
   '/operations/reports':       'Reports',
   '/operations/notifications': 'Notifications',
-  '/operations/communication': 'Communication',
   '/operations/profile':       'My Profile',
 };
 

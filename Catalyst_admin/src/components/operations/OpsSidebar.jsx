@@ -28,8 +28,7 @@ const NAV = [
     { key: 'batches',  label: 'Batches',  path: '/operations/batches',  icon: icons.batches,  color: '#f59e0b' },
   ]},
   { section: 'TOOLS', items: [
-    { key: 'reports',       label: 'Reports',       path: '/operations/reports',       icon: icons.reports,       color: '#10b981' },
-    { key: 'communication', label: 'Communication', path: '/operations/communication', icon: icons.communication, color: '#7c3aed' },
+    { key: 'reports', label: 'Reports', path: '/operations/reports', icon: icons.reports, color: '#10b981' },
   ]},
 ];
 

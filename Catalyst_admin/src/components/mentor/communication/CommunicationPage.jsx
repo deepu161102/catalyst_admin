@@ -27,6 +27,38 @@ function formatDate(ts) {
   return d.toLocaleDateString();
 }
 
+const EMOJI_TABS = [
+  { icon: '😊', emojis: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😉','😊','😇','🥰','😍','🤩','😘','😋','😛','😜','🤪','😝','🤑','🤗','😐','🙄','😏','😒','😞','😔','😕','🙁','😣','😩','🥺','😢','😭','😤','😠','😡','😳','😱','😨'] },
+  { icon: '👋', emojis: ['👋','🤚','✋','🖖','👌','✌️','🤞','🤟','🤙','👈','👉','👆','👇','👍','👎','✊','👊','👏','🙌','🤝','🙏','💪'] },
+  { icon: '❤️', emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝'] },
+  { icon: '🎉', emojis: ['🎉','🎊','🎈','🎁','🏆','🥇','🌟','⭐','✨','💫','🔥','💯','🎯','🚀','💡','📚','📝','✅','❌','💬','🔔','💰','🎓'] },
+  { icon: '🐶', emojis: ['🐶','🐱','🐭','🐰','🦊','🐻','🐼','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🦄','🐴'] },
+];
+
+function EmojiPicker({ onSelect }) {
+  const [tab, setTab] = useState(0);
+  return (
+    <div className="absolute bottom-[calc(100%+6px)] left-0 z-50 bg-white border border-gray-200 rounded-xl shadow-lg w-[272px] overflow-hidden">
+      <div className="flex border-b border-gray-100 px-1 pt-1 gap-0.5">
+        {EMOJI_TABS.map((t, i) => (
+          <button key={i} onClick={() => setTab(i)}
+            className={`flex-1 py-1.5 text-[17px] rounded-lg transition-colors ${i === tab ? 'bg-gray-100' : 'hover:bg-gray-50'}`}>
+            {t.icon}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-8 gap-0.5 p-2 max-h-[156px] overflow-y-auto">
+        {EMOJI_TABS[tab].emojis.map(e => (
+          <button key={e} onClick={() => onSelect(e)}
+            className="text-[18px] leading-none p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-center">
+            {e}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function CommunicationPage() {
   const { user } = useAuth();
 
@@ -38,6 +70,7 @@ export default function CommunicationPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [typing, setTyping]               = useState(false);
   const [onlineUsers, setOnlineUsers]     = useState(new Set());
+  const [showEmoji, setShowEmoji]         = useState(false);
 
   const messagesEndRef = useRef(null);
   const socketRef      = useRef(null);
@@ -337,7 +370,22 @@ export default function CommunicationPage() {
             </div>
 
             {/* Input */}
-            <div className="px-4 py-3 border-t border-gray-100 flex gap-2 bg-white">
+            <div className="px-4 py-3 border-t border-gray-100 flex gap-2 bg-white items-center">
+              <div className="relative shrink-0">
+                <button
+                  onClick={() => setShowEmoji(p => !p)}
+                  className={`w-10 h-10 rounded-[10px] flex items-center justify-center text-[18px] transition-colors ${showEmoji ? 'bg-teal-50' : 'hover:bg-gray-100'}`}
+                  title="Emoji"
+                >
+                  😊
+                </button>
+                {showEmoji && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowEmoji(false)} />
+                    <EmojiPicker onSelect={e => setInput(p => p + e)} />
+                  </>
+                )}
+              </div>
               <input
                 className="flex-1 px-3.5 py-2.5 rounded-[10px] border-[1.5px] border-gray-200 text-[13px] text-gray-900 outline-none focus:border-teal-500 transition-colors"
                 placeholder={`Message ${selected.name}...`}
