@@ -41,7 +41,7 @@ export default function App() {
   return (
     <DataProvider>
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           {/* ── Public: Login ── */}
           <Route path="/" element={<LoginPage />} />
