@@ -47,6 +47,16 @@ export const studentService = {
   remove:      (id)            => req(`/students/${id}`, { method: 'DELETE' }),
 };
 
+export const assignmentService = {
+  getByMentor:   (mentorId)          => req(`/assignments?mentorId=${mentorId}`),
+  getById:       (id)                => req(`/assignments/${id}`),
+  create:        (payload)           => req('/assignments', { method: 'POST', body: JSON.stringify(payload) }),
+  update:        (id, payload)       => req(`/assignments/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  remove:        (id)                => req(`/assignments/${id}`, { method: 'DELETE' }),
+  setStatus:     (id, status)        => req(`/assignments/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  enrollBatches: (id, batchIds)      => req(`/assignments/${id}/enroll`, { method: 'POST', body: JSON.stringify({ batchIds }) }),
+};
+
 export const chatService = {
   getConversations: (userId)               => req(`/chat/conversations/${userId}`),
   getMessages:      (userId, otherId, page = 1) => req(`/chat/messages/${userId}/${otherId}?page=${page}`),
