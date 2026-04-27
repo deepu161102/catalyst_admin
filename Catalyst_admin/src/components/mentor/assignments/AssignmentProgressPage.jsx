@@ -7,7 +7,7 @@
 // ============================================================
 
 import { useState } from 'react';
-import { SECTION_META } from './components/SectionBuilder';
+import { SECTION_META } from './components/sectionMeta';
 
 // ── Score report modal ────────────────────────────────────────
 function StudentReportModal({ attempt, assignment, onClose }) {
@@ -309,7 +309,7 @@ function StudentReportModal({ attempt, assignment, onClose }) {
 }
 
 // ── Attempt row ───────────────────────────────────────────────
-function AttemptRow({ attempt, assignment, onViewReport }) {
+function AttemptRow({ attempt, onViewReport }) {
   const statusMeta = {
     completed:   { label: 'Completed',   dot: '#10b981', bg: '#f0fdf4', color: '#065f46' },
     in_progress: { label: 'In Progress', dot: '#f59e0b', bg: '#fffbeb', color: '#92400e' },

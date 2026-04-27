@@ -10,7 +10,7 @@ import RichTextEditor from './RichTextEditor';
 const CHOICE_LABELS = ['A', 'B', 'C', 'D'];
 
 // ── Helper: choice row ───────────────────────────────────────
-function ChoiceRow({ letter, value, isCorrect, accentColor, onChange, onMarkCorrect }) {
+function ChoiceRow({ letter, value, isCorrect, onChange, onMarkCorrect }) {
   return (
     <div className="flex items-center gap-2.5">
       {/* Letter badge */}

@@ -12,7 +12,7 @@
 
 import { useState } from 'react';
 import SectionBuilder from './components/SectionBuilder';
-import { SECTION_META } from './components/SectionBuilder';
+import { SECTION_META } from './components/sectionMeta';
 
 // ── Step metadata ────────────────────────────────────────────
 const STEPS = [
@@ -370,7 +370,7 @@ function StepRules({ data, onChange }) {
 // ════════════════════════════════════════════════════════════
 function StepReview({ data, onGoToStep }) {
   const { totalQ, totalScore } = computeTotals(data);
-  const passingPoints = Math.ceil((totalScore * data.passingScore) / 100);
+  //const passingPoints = Math.ceil((totalScore * data.passingScore) / 100);
 
   const warnings = [];
   if (!data.title.trim())  warnings.push({ type: 'error', step: 1, msg: 'Assignment title is required.' });

@@ -11,7 +11,7 @@ import { assignmentService, studentService, batchService } from '../../../servic
 import CreateAssignmentPage    from './CreateAssignmentPage';
 import AssignmentProgressPage  from './AssignmentProgressPage';
 import BatchEnrollModal        from './components/BatchEnrollModal';
-import { SECTION_META }        from './components/SectionBuilder';
+import { SECTION_META } from './components/sectionMeta';
 
 // ────────────────────────────────────────────────────────────
 // Default SAT structure factory
