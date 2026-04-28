@@ -29,22 +29,16 @@ const NAV = [
     { key: 'batches',  label: 'Batches',  path: '/operations/batches',  icon: icons.batches,  color: '#f59e0b' },
   ]},
   { section: 'TOOLS', items: [
-    { key: 'reports',       label: 'Reports',       path: '/operations/reports',       icon: icons.reports,       color: '#10b981' },
-    { key: 'communication', label: 'Communication', path: '/operations/communication', icon: icons.communication, color: '#ec4899', badgeKey: 'chat' },
+    { key: 'reports', label: 'Reports', path: '/operations/reports', icon: icons.reports, color: '#10b981' },
   ]},
 ];
 
-export default function OpsSidebar({ collapsed, onToggle, chatUnreadCount = 0 }) {
+export default function OpsSidebar({ collapsed, onToggle }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
 
   const isActive = (path) => location.pathname.startsWith(path);
-
-  const getBadge = (badgeKey) => {
-    if (badgeKey === 'chat') return chatUnreadCount;
-    return 0;
-  };
 
   return (
     <aside
@@ -85,11 +79,10 @@ export default function OpsSidebar({ collapsed, onToggle, chatUnreadCount = 0 })
             )}
             {section.items.map((item) => {
               const active = isActive(item.path);
-              const badge  = getBadge(item.badgeKey);
               return (
                 <button
                   key={item.key}
-                  className={`w-full flex items-center gap-2.5 px-3.5 py-[9px] my-px rounded-[10px] relative transition-colors ${
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-[9px] my-px rounded-[10px] transition-colors ${
                     active ? 'bg-ops-lighter' : 'hover:bg-gray-50'
                   } ${collapsed ? 'justify-center' : 'justify-start'}`}
                   onClick={() => navigate(item.path)}
@@ -111,17 +104,6 @@ export default function OpsSidebar({ collapsed, onToggle, chatUnreadCount = 0 })
                       }`}
                     >
                       {item.label}
-                    </span>
-                  )}
-
-                  {badge > 0 && !collapsed && (
-                    <span className="min-w-[20px] h-5 rounded-[10px] bg-purple-600 text-white text-[11px] font-bold flex items-center justify-center px-1.5">
-                      {badge > 99 ? '99+' : badge}
-                    </span>
-                  )}
-                  {badge > 0 && collapsed && (
-                    <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-purple-600 text-white text-[9px] font-bold flex items-center justify-center">
-                      {badge > 9 ? '9+' : badge}
                     </span>
                   )}
                 </button>

@@ -43,7 +43,7 @@ export default function MentorDashboard() {
       batchService.getAll({ mentorId: user._id }),
     ])
       .then(([sRes, bRes]) => {
-        setStudents(sRes.data);
+        setStudents((sRes.data || []).map(({ student, batch }) => ({ ...student, batch })));
         setBatches(bRes.data);
       })
       .catch(console.error)
@@ -143,7 +143,7 @@ export default function MentorDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">{s.name}</p>
-                      <p className="text-xs text-gray-400 truncate">{s.batch?.course || '—'} · {s.batch?.name || 'Unassigned'}</p>
+                      <p className="text-xs text-gray-400 truncate capitalize">{s.batch?.subject || '—'} · {s.batch?.name || 'Unassigned'}</p>
                     </div>
                     <div className="text-right min-w-[72px]">
                       <p className="text-[13px] font-semibold" style={{ color: pc }}>{prog}%</p>

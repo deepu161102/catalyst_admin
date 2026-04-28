@@ -36,18 +36,18 @@ export default function StudentsPage() {
   useEffect(() => {
     if (!user?._id) return;
     studentService.getByMentor(user._id)
-      .then(res => setStudents(res.data))
+      .then(res => setStudents((res.data || []).map(({ student, batch }) => ({ ...student, batch }))))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [user?._id]);
 
-  const courses = [...new Set(students.map(s => s.batch?.course).filter(Boolean))];
+  const courses = [...new Set(students.map(s => s.batch?.subject).filter(Boolean))];
 
   const filtered = students
     .filter(s => {
       const isActive = s.isActive !== false;
       const status   = isActive ? 'active' : 'inactive';
-      const course   = s.batch?.course || '';
+      const course   = s.batch?.subject || '';
       return (
         (s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase())) &&
         (filterStatus === 'all' || status === filterStatus) &&
@@ -156,7 +156,7 @@ export default function StudentsPage() {
                   </div>
                 </div>
                 <div className="flex-[2]">
-                  <p className="text-[13px] text-gray-700 font-medium">{student.batch?.course || '—'}</p>
+                  <p className="text-[13px] text-gray-700 font-medium capitalize">{student.batch?.subject || '—'}</p>
                   <p className="text-[11px] text-gray-400">{student.batch?.name || '—'}</p>
                 </div>
                 <div className="flex-[2]">

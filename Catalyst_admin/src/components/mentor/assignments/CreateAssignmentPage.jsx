@@ -16,7 +16,7 @@ import { SECTION_META } from './components/sectionMeta';
 
 // ── Step metadata ────────────────────────────────────────────
 const STEPS = [
-  { num: 1, label: 'Assignment Info',  icon: '📋', desc: 'Title & students' },
+  { num: 1, label: 'Assignment Info',  icon: '📋', desc: 'Title & details' },
   { num: 2, label: 'SAT Structure',    icon: '🏗',  desc: 'Sections & modules' },
   { num: 3, label: 'Add Questions',    icon: '📝',  desc: 'Build question bank' },
   { num: 4, label: 'Rules & Scoring',  icon: '⚙️',  desc: 'Pass criteria' },
@@ -42,22 +42,12 @@ function computeTotals(data) {
 function StepInfo({ data, onChange }) {
   const set = (key, val) => onChange({ ...data, [key]: val });
 
-  // const toggleStudent = (id) => {
-  //   const current = data.assignedTo || [];
-  //   onChange({
-  //     ...data,
-  //     assignedTo: current.includes(id)
-  //       ? current.filter((s) => s !== id)
-  //       : [...current, id],
-  //   });
-  // };
-
   return (
     <div className="max-w-2xl mx-auto space-y-7">
       <div>
         <h3 className="text-xl font-extrabold text-gray-900 mb-1">Assignment Details</h3>
         <p className="text-sm text-gray-500">
-          Give your SAT practice test a name and set the basics.
+          Give your SAT practice test a name and set the basics. You can enroll batches after publishing.
         </p>
       </div>
 
@@ -360,8 +350,7 @@ function StepReview({ data, onGoToStep }) {
   if (!data.title.trim())  warnings.push({ type: 'error', step: 1, msg: 'Assignment title is required.' });
   if (!data.dueDate)       warnings.push({ type: 'warn',  step: 1, msg: 'No due date set.' });
   if (totalQ === 0)        warnings.push({ type: 'error', step: 3, msg: 'No questions added yet. Go to Step 3.' });
-  if ((data.assignedTo || []).length === 0)
-    warnings.push({ type: 'info', step: 1, msg: 'No students assigned. You can assign later.' });
+  warnings.push({ type: 'info', step: null, msg: 'Publish first, then enroll batches from the Assignments list.' });
 
   return (
     <div className="max-w-2xl mx-auto space-y-7">
@@ -383,10 +372,10 @@ function StepReview({ data, onGoToStep }) {
         <h2 className="text-xl font-extrabold mb-4">{data.title || 'Untitled Assignment'}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { v: totalQ,              l: 'Questions' },
-            { v: totalScore,          l: 'Total Points' },
-            { v: `${data.passingScore}%`, l: 'Pass Mark' },
-            { v: (data.assignedTo || []).length || '—', l: 'Students' },
+            { v: totalQ,                   l: 'Questions'    },
+            { v: totalScore,               l: 'Total Points' },
+            { v: `${data.passingScore}%`,  l: 'Pass Mark'    },
+            { v: data.sections?.length ?? 2, l: 'Sections'   },
           ].map(({ v, l }) => (
             <div key={l} className="bg-white/15 rounded-xl p-3 text-center">
               <p className="text-xl font-black">{v}</p>
@@ -524,9 +513,12 @@ function Field({ label, required, hint, children }) {
 // ════════════════════════════════════════════════════════════
 // MAIN — CreateAssignmentPage
 // ════════════════════════════════════════════════════════════
-export default function CreateAssignmentPage({ initial, students, onSave, onClose }) {
+export default function CreateAssignmentPage({ initial, onSave, onClose }) {
   const [step, setStep] = useState(1);
-  const [data, setData] = useState(initial);
+  const [data, setData] = useState({
+    ...initial,
+    dueDate: initial.dueDate ? initial.dueDate.slice(0, 10) : '',
+  });
 
   const canAdvance = () => {
     if (step === 1) return data.title.trim().length > 0 && !!data.dueDate;
@@ -591,7 +583,7 @@ export default function CreateAssignmentPage({ initial, students, onSave, onClos
 
       {/* ── Step content ── */}
       <div className="flex-1 overflow-y-auto py-8 px-6">
-        {step === 1 && <StepInfo      data={data} onChange={setData} students={students} />}
+        {step === 1 && <StepInfo      data={data} onChange={setData} />}
         {step === 2 && <StepStructure data={data} onChange={setData} />}
         {step === 3 && <SectionBuilder data={data} onChange={setData} />}
         {step === 4 && <StepRules     data={data} onChange={setData} />}

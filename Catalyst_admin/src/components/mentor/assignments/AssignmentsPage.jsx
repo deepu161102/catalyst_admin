@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import { assignmentService, studentService, batchService } from '../../../services/api';
+import { assignmentService, batchService } from '../../../services/api';
 import CreateAssignmentPage    from './CreateAssignmentPage';
 import AssignmentProgressPage  from './AssignmentProgressPage';
 import BatchEnrollModal        from './components/BatchEnrollModal';
@@ -44,7 +44,6 @@ function newAssignment(mentorId) {
     title:           '',
     description:     '',
     dueDate:         '',
-    assignedTo:      [],
     enrolledBatches: [],
     status:          'draft',
     createdAt:       new Date().toISOString(),
@@ -136,8 +135,8 @@ function AssignmentCard({ assignment, onEdit, onDelete, onTogglePublish, onEnrol
           <span>📝 {totalQ} questions</span>
           <span>⭐ {totalScore} pts</span>
           <span>🎯 Pass: {assignment.passingScore}%</span>
-          {(assignment.assignedTo || []).length > 0 && (
-            <span>👥 {(assignment.assignedTo || []).length} students</span>
+          {(assignment.enrolledBatches || []).length > 0 && (
+            <span>👥 {(assignment.enrolledBatches || []).length} batch{(assignment.enrolledBatches || []).length !== 1 ? 'es' : ''} enrolled</span>
           )}
         </div>
 
@@ -225,7 +224,6 @@ function EmptyState({ onCreateClick }) {
 export default function AssignmentsPage() {
   const { user }                           = useAuth();
 
-  const [myStudents, setMyStudents]        = useState([]);
   const [myBatches,  setMyBatches]         = useState([]);
   const [assignments, setAssignments]      = useState([]);
   const [loading, setLoading]              = useState(true);
@@ -242,26 +240,17 @@ export default function AssignmentsPage() {
     if (!user?._id) return;
     try {
       setLoading(true);
-      const [aRes, sRes, bRes] = await Promise.all([
+      const [aRes, bRes] = await Promise.all([
         assignmentService.getByMentor(user._id),
-        studentService.getByMentor(user._id).catch(() => ({ data: [] })),
         batchService.getAll({ mentorId: user._id }).catch(() => ({ data: [] })),
       ]);
       setAssignments((aRes.data || []).map(normalise));
-      // Shape students for the Step 1 picker
-      setMyStudents((sRes.data || []).map((s) => ({
-        id:   s._id,
-        name: s.name,
-        batch: s.batchId || '',
-      })));
-      // Count students per batch so the modal can show them
-      const students = sRes.data || [];
       setMyBatches((bRes.data || []).map((b) => ({
         id:         b._id,
         name:       b.name,
-        course:     b.course,
-        mentorId:   String(b.mentorId),
-        studentIds: students.filter((s) => String(s.batchId) === String(b._id)).map((s) => s._id),
+        subject:    b.subject,
+        mentorId:   String(b.mentorId?._id || b.mentorId),
+        studentIds: b.studentId ? [b.studentId._id || b.studentId] : [],
       })));
     } catch (e) {
       setError(e.message);
@@ -318,7 +307,8 @@ export default function AssignmentsPage() {
       if (saved._id) {
         result = await assignmentService.update(saved._id, payload);
       } else {
-        result = await assignmentService.create(payload);
+        const { _id, ...createPayload } = payload;
+        result = await assignmentService.create(createPayload);
       }
 
       const normalised = normalise(result.data);
@@ -361,7 +351,6 @@ export default function AssignmentsPage() {
   const handleEnrollBatch = async (selectedBatchIds) => {
     if (!enrollFor) return;
     try {
-      // Merge with already-enrolled batches (handle both populated objects and plain IDs)
       const existingIds = (enrollFor.enrolledBatches || []).map((b) =>
         typeof b === 'object' ? String(b._id || b.id) : String(b)
       );
@@ -369,15 +358,32 @@ export default function AssignmentsPage() {
       const res = await assignmentService.enrollBatches(enrollFor._id, merged);
       const updated = normalise(res.data);
       setAssignments((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
+      setEnrollFor(updated);
       if (progressFor?._id === updated._id) setProgressFor(updated);
     } catch (e) {
       setError(e.message);
     }
-    setEnrollFor(null);
+  };
+
+  const handleUnenrollBatch = async (batchId) => {
+    if (!enrollFor) return;
+    const res = await assignmentService.unenrollBatch(enrollFor._id, batchId);
+    const updated = normalise(res.data);
+    setAssignments((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
+    setEnrollFor(updated);
+    if (progressFor?._id === updated._id) setProgressFor(updated);
   };
 
   // ── Progress view ─────────────────────────────────────────
-  const openProgress    = (a) => { setProgressFor(a); setView('progress'); };
+  const openProgress = async (a) => {
+    try {
+      const res = await assignmentService.getProgress(a._id);
+      setProgressFor(normalise(res.data));
+      setView('progress');
+    } catch (e) {
+      setError(e.message);
+    }
+  };
   const handleProgressBack = () => { setProgressFor(null); setView('list'); };
 
   // ── Sub-views ─────────────────────────────────────────────
@@ -385,7 +391,6 @@ export default function AssignmentsPage() {
     return (
       <CreateAssignmentPage
         initial={editing}
-        students={myStudents}
         onSave={handleSave}
         onClose={() => { setView('list'); setEditing(null); }}
       />
@@ -393,8 +398,7 @@ export default function AssignmentsPage() {
   }
 
   if (view === 'progress' && progressFor) {
-    const latest = assignments.find((a) => a._id === progressFor._id) || progressFor;
-    return <AssignmentProgressPage assignment={latest} onBack={handleProgressBack} />;
+    return <AssignmentProgressPage assignment={progressFor} onBack={handleProgressBack} />;
   }
 
   // ── List view ─────────────────────────────────────────────
@@ -409,7 +413,7 @@ export default function AssignmentsPage() {
   const totalQuestions = assignments.reduce(
     (acc, a) => acc + a.sections.reduce((s, sec) => s + sec.modules.reduce((m, mod) => m + mod.questions.length, 0), 0), 0,
   );
-  const totalStudents = [...new Set(assignments.flatMap((a) => a.assignedTo || []))].length;
+  const totalEnrolled = assignments.reduce((acc, a) => acc + (a.enrolledBatches || []).length, 0);
 
   return (
     <div className="p-6 flex flex-col gap-6 fade-in min-h-full">
@@ -458,7 +462,7 @@ export default function AssignmentsPage() {
               <StatCard icon="📋" value={counts.all}       label="Total Assignments" color="#4f46e5" />
               <StatCard icon="🚀" value={counts.published}  label="Published"         color="#10b981" />
               <StatCard icon="📝" value={totalQuestions}   label="Total Questions"   color="#7c3aed" />
-              <StatCard icon="👥" value={totalStudents}    label="Students Assigned" color="#f59e0b" />
+              <StatCard icon="👥" value={totalEnrolled}    label="Batch Enrollments" color="#f59e0b" />
             </div>
           )}
 
@@ -513,6 +517,7 @@ export default function AssignmentsPage() {
           batches={myBatches}
           enrolledBatches={enrollFor.enrolledBatches || []}
           onEnroll={handleEnrollBatch}
+          onUnenroll={handleUnenrollBatch}
           onClose={() => setEnrollFor(null)}
         />
       )}

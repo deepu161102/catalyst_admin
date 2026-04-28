@@ -7,8 +7,9 @@
 
 import { useState } from 'react';
 
-export default function BatchEnrollModal({ batches, enrolledBatches = [], onEnroll, onClose }) {
-  const [selected, setSelected] = useState([]);
+export default function BatchEnrollModal({ batches, enrolledBatches = [], onEnroll, onUnenroll, onClose }) {
+  const [selected,    setSelected]    = useState([]);
+  const [unenrolling, setUnenrolling] = useState(null); // batchId being removed
 
   const toggle = (batchId) =>
     setSelected((prev) =>
@@ -16,7 +17,10 @@ export default function BatchEnrollModal({ batches, enrolledBatches = [], onEnro
     );
 
   const handleConfirm = () => {
-    if (selected.length > 0) onEnroll(selected);
+    if (selected.length > 0) {
+      onEnroll(selected);
+      setSelected([]);
+    }
   };
 
   // enrolledBatches can be plain IDs or populated objects — normalise to strings
@@ -100,8 +104,8 @@ export default function BatchEnrollModal({ batches, enrolledBatches = [], onEnro
                       <p className={`text-[13px] font-bold truncate ${isSelected ? 'text-indigo-700' : 'text-gray-800'}`}>
                         {batch.name}
                       </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">
-                        {batch.course} &nbsp;·&nbsp; {batch.studentIds.length} student{batch.studentIds.length !== 1 ? 's' : ''}
+                      <p className="text-[11px] text-gray-400 mt-0.5 capitalize">
+                        {batch.subject} &nbsp;·&nbsp; {batch.studentIds.length} student{batch.studentIds.length !== 1 ? 's' : ''}
                       </p>
                     </div>
 
@@ -120,26 +124,42 @@ export default function BatchEnrollModal({ batches, enrolledBatches = [], onEnro
               <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">
                 Already Enrolled
               </p>
-              {alreadyEnrolled.map((batch) => (
-                <div
-                  key={batch.id}
-                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-emerald-200 bg-emerald-50 opacity-75"
-                >
-                  <div className="w-5 h-5 rounded-md bg-emerald-500 flex items-center justify-center shrink-0">
-                    <span className="text-white text-[10px] font-black">✓</span>
+              {alreadyEnrolled.map((batch) => {
+                const isRemoving = unenrolling === batch.id;
+                return (
+                  <div
+                    key={batch.id}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-emerald-200 bg-emerald-50"
+                  >
+                    <div className="w-5 h-5 rounded-md bg-emerald-500 flex items-center justify-center shrink-0">
+                      <span className="text-white text-[10px] font-black">✓</span>
+                    </div>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-extrabold text-white bg-emerald-400 shrink-0">
+                      {batch.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-emerald-800 truncate">{batch.name}</p>
+                      <p className="text-[11px] text-emerald-600 mt-0.5">
+                        {batch.studentIds.length} student{batch.studentIds.length !== 1 ? 's' : ''} enrolled
+                      </p>
+                    </div>
+                    {onUnenroll && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Remove "${batch.name}" from this assignment?\n\nStudents who already submitted will keep their results, but new attempts will no longer be possible.`)) {
+                            setUnenrolling(batch.id);
+                            onUnenroll(batch.id).finally(() => setUnenrolling(null));
+                          }
+                        }}
+                        disabled={isRemoving}
+                        className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50"
+                      >
+                        {isRemoving ? '…' : 'Remove'}
+                      </button>
+                    )}
                   </div>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-extrabold text-white bg-emerald-400 shrink-0">
-                    {batch.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-emerald-800 truncate">{batch.name}</p>
-                    <p className="text-[11px] text-emerald-600 mt-0.5">
-                      {batch.studentIds.length} student{batch.studentIds.length !== 1 ? 's' : ''} enrolled
-                    </p>
-                  </div>
-                  <span className="text-emerald-600 text-[11px] font-bold shrink-0">Enrolled</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

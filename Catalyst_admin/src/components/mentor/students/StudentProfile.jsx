@@ -50,7 +50,7 @@ export default function StudentProfile() {
   const prog          = student.progress || 0;
   const progressColor = prog >= 80 ? '#10b981' : prog >= 50 ? '#f59e0b' : '#ef4444';
   const isActive      = student.isActive !== false;
-  const batch         = student.batchId;
+  const batch         = student.batches?.[0];
   const mentor        = batch?.mentorId;
   const sessionsDone  = student.completedSessions || 0;
   const totalSess     = student.totalSessions || batch?.totalSessions || 0;
@@ -79,8 +79,8 @@ export default function StudentProfile() {
           <p className="text-gray-500 mt-1">{student.email}{student.phone ? ` · ${student.phone}` : ''}</p>
           <div className="flex gap-2 mt-2.5 flex-wrap">
             {batch && (
-              <span className="px-3 py-1 rounded-full bg-mentor-lighter text-mentor-primary text-xs font-semibold border border-mentor-light">
-                {batch.course}
+              <span className="px-3 py-1 rounded-full bg-mentor-lighter text-mentor-primary text-xs font-semibold border border-mentor-light capitalize">
+                {batch.subject}
               </span>
             )}
             {batch && (
@@ -170,7 +170,7 @@ export default function StudentProfile() {
             <div className="p-6">
               <h4 className="text-sm font-bold text-gray-900 mb-4">Enrollment Details</h4>
               {[
-                { label: 'Course',     value: batch?.course || '—' },
+                { label: 'Subject',    value: batch?.subject || '—' },
                 { label: 'Batch',      value: batch?.name || '—' },
                 { label: 'Mentor',     value: mentor?.name || '—' },
                 { label: 'Batch Status', value: batch?.status || '—' },

@@ -8,181 +8,16 @@ function initials(name = '') {
   return name.trim().split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 }
 
-/* ── Assign Existing Student Modal ─────────────────────────── */
-function AssignStudentModal({ mentorBatches, existingStudentIds, onAssigned, onClose }) {
-  const [all, setAll]           = useState([]);
-  const [selected, setSelected] = useState(new Set());
-  const [targetBatchId, setTargetBatchId] = useState(mentorBatches[0]?._id || '');
-  const [search, setSearch]     = useState('');
-  const [loadingStudents, setLoadingStudents] = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState('');
-
-  useEffect(() => {
-    studentService.getAll()
-      .then(res => setAll(res.data))
-      .catch(err => setError(err.message))
-      .finally(() => setLoadingStudents(false));
-  }, []);
-
-  // exclude students already under this mentor
-  const available = all.filter(s => !existingStudentIds.has(s._id));
-
-  const filtered = available.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const toggle = (id) => setSelected(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
-
-  const allFilteredSelected = filtered.length > 0 && filtered.every(s => selected.has(s._id));
-  const toggleAll = () => setSelected(
-    allFilteredSelected ? new Set() : new Set(filtered.map(s => s._id))
-  );
-
-  const handleAssign = async () => {
-    if (selected.size === 0 || !targetBatchId) return;
-    setSaving(true);
-    setError('');
-    try {
-      await Promise.all([...selected].map(sid => batchService.addStudent(targetBatchId, sid)));
-      onAssigned();
-    } catch (err) {
-      setError(err.message);
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[1000] backdrop-blur-sm">
-      <div className="bg-white rounded-[18px] w-[500px] shadow-[0_20px_60px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col max-h-[90vh]">
-
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
-          <div>
-            <h3 className="text-base font-bold text-gray-900">Assign Students to Batch</h3>
-            {selected.size > 0 && (
-              <p className="text-xs text-ops-primary font-semibold mt-0.5">{selected.size} student{selected.size !== 1 ? 's' : ''} selected</p>
-            )}
-          </div>
-          <button className="w-7 h-7 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center text-sm" onClick={onClose}>✕</button>
-        </div>
-
-        {/* Batch selector */}
-        <div className="px-6 py-3 border-b border-gray-100 shrink-0">
-          <label className="text-xs font-semibold text-gray-600 block mb-1.5">Assign to Batch *</label>
-          {mentorBatches.length === 0 ? (
-            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              This mentor has no batches yet. Create a batch first before assigning students.
-            </p>
-          ) : (
-            <select
-              className="w-full px-3 py-2 rounded-[10px] border-[1.5px] border-gray-200 text-[13px] outline-none bg-white focus:border-ops-primary transition-colors"
-              value={targetBatchId}
-              onChange={e => setTargetBatchId(e.target.value)}
-            >
-              {mentorBatches.map(b => (
-                <option key={b._id} value={b._id}>{b.name} — {b.course} ({b.studentCount ?? 0} students)</option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        {/* Search */}
-        <div className="px-4 py-3 border-b border-gray-100 shrink-0">
-          <input
-            className="w-full px-3 py-2 rounded-lg border-[1.5px] border-gray-200 text-[13px] outline-none bg-gray-50 focus:border-ops-primary transition-colors"
-            placeholder="Search students by name or email..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* List */}
-        <div className="overflow-y-auto flex-1 min-h-0">
-          {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded mx-4 mt-3 px-3 py-2">{error}</p>}
-
-          {loadingStudents ? (
-            <div className="p-6 space-y-2">
-              {[1, 2, 3].map(i => <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />)}
-            </div>
-          ) : available.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">
-              <p className="text-2xl mb-2">✅</p>
-              <p className="text-sm font-semibold text-gray-600">All students are already in this mentor's batches</p>
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">No students match your search.</p>
-          ) : (
-            <>
-              <div
-                className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                onClick={toggleAll}
-              >
-                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${allFilteredSelected ? 'bg-ops-primary border-ops-primary' : 'border-gray-300 bg-white'}`}>
-                  {allFilteredSelected && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                </div>
-                <span className="text-[12px] font-semibold text-gray-600">Select all ({filtered.length})</span>
-              </div>
-
-              {filtered.map(s => {
-                const isChecked  = selected.has(s._id);
-                const batchLabel = s.batchId?.name ? `In: ${s.batchId.name}` : 'Unassigned';
-                return (
-                  <div
-                    key={s._id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b border-gray-50 cursor-pointer transition-colors ${isChecked ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
-                    onClick={() => toggle(s._id)}
-                  >
-                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${isChecked ? 'bg-ops-primary border-ops-primary' : 'border-gray-300 bg-white'}`}>
-                      {isChecked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-ops-primary to-purple-400 text-white font-bold text-[11px] flex items-center justify-center shrink-0">
-                      {initials(s.name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-gray-900 truncate">{s.name}</p>
-                      <p className="text-[11px] text-gray-400 truncate">{s.email}</p>
-                    </div>
-                    <span className="text-[11px] text-gray-400 shrink-0">{batchLabel}</span>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-gray-100 flex gap-2.5 justify-end shrink-0">
-          <button className="px-5 py-2 rounded-[10px] bg-gray-100 text-gray-700 font-semibold text-[13px]" onClick={onClose}>Cancel</button>
-          <button
-            disabled={selected.size === 0 || !targetBatchId || saving || mentorBatches.length === 0}
-            className="px-5 py-2 rounded-[10px] bg-ops-primary text-white font-semibold text-[13px] disabled:opacity-40"
-            onClick={handleAssign}
-          >
-            {saving ? 'Assigning...' : `Assign ${selected.size > 0 ? selected.size + ' ' : ''}Student${selected.size !== 1 ? 's' : ''}`}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── Main Component ────────────────────────────────────────── */
 export default function MentorDetailPage() {
   const { id }   = useParams();
   const navigate = useNavigate();
 
-  const [mentor, setMentor]         = useState(null);
-  const [students, setStudents]     = useState([]);
-  const [batches, setBatches]       = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState('');
-  const [showAssign, setShowAssign] = useState(false);
+  const [mentor, setMentor]     = useState(null);
+  const [students, setStudents] = useState([]);
+  const [batches, setBatches]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
 
   const loadData = useCallback(() => {
     Promise.all([
@@ -192,7 +27,7 @@ export default function MentorDetailPage() {
     ])
       .then(([mRes, sRes, bRes]) => {
         setMentor(mRes.data);
-        setStudents(sRes.data);
+        setStudents((sRes.data || []).map(({ student, batch }) => ({ ...student, batch })));
         setBatches(bRes.data);
       })
       .catch(err => setError(err.message))
@@ -220,10 +55,9 @@ export default function MentorDetailPage() {
     );
   }
 
-  const avgProgress       = students.length
+  const avgProgress = students.length
     ? Math.round(students.reduce((a, s) => a + (s.progress || 0), 0) / students.length)
     : 0;
-  const existingStudentIds = new Set(students.map(s => s._id));
 
   return (
     <div className="p-6 flex flex-col gap-4 fade-in">
@@ -274,10 +108,10 @@ export default function MentorDetailPage() {
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-[15px] font-bold text-gray-900">Assigned Students ({students.length})</h3>
           <button
-            className="px-3.5 py-1.5 rounded-lg bg-ops-primary text-white text-xs font-semibold shadow-[0_2px_8px_rgba(124,58,237,0.25)]"
-            onClick={() => setShowAssign(true)}
+            className="px-3.5 py-1.5 rounded-lg bg-ops-primary/10 text-ops-primary text-xs font-semibold border border-ops-primary/20"
+            onClick={() => navigate('/operations/batches')}
           >
-            + Assign Student
+            Manage via Batches →
           </button>
         </div>
 
@@ -287,7 +121,7 @@ export default function MentorDetailPage() {
           <>
             <div className="flex px-5 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-[0.4px] gap-3">
               <span className="flex-[2]">Student</span>
-              <span className="flex-[2]">Batch / Course</span>
+              <span className="flex-[2]">Batch / Subject</span>
               <span className="flex-1">Progress</span>
               <span className="flex-1">Status</span>
             </div>
@@ -311,7 +145,7 @@ export default function MentorDetailPage() {
                   </div>
                   <div className="flex-[2]">
                     <p className="text-[13px] text-gray-700">{s.batch?.name || '—'}</p>
-                    <p className="text-[11px] text-gray-400">{s.batch?.course || '—'}</p>
+                    <p className="text-[11px] text-gray-400 capitalize">{s.batch?.subject || '—'}</p>
                   </div>
                   <div className="flex-1">
                     <p className="text-[13px] font-bold" style={{ color: pc }}>{prog}%</p>
@@ -351,9 +185,9 @@ export default function MentorDetailPage() {
             >
               <div className="flex-[2]">
                 <p className="text-sm font-semibold text-gray-900">{b.name}</p>
-                <p className="text-xs text-gray-400">{b.course}</p>
+                <p className="text-xs text-gray-400 capitalize">{b.subject}</p>
               </div>
-              <div className="flex-1 text-[13px] text-gray-600">{b.studentCount ?? 0} students</div>
+              <div className="flex-1 text-[13px] text-gray-600">{b.studentCount ?? 0} student</div>
               <div className="flex-[2] flex items-center gap-2">
                 <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div className="h-full bg-ops-primary rounded-full" style={{ width: `${pct}%` }} />
@@ -367,15 +201,6 @@ export default function MentorDetailPage() {
           );
         })}
       </div>
-
-      {showAssign && (
-        <AssignStudentModal
-          mentorBatches={batches}
-          existingStudentIds={existingStudentIds}
-          onAssigned={() => { setShowAssign(false); loadData(); }}
-          onClose={() => setShowAssign(false)}
-        />
-      )}
     </div>
   );
 }
