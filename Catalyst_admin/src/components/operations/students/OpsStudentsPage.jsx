@@ -26,17 +26,17 @@ export default function OpsStudentsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const courses = [...new Set(students.flatMap((s) => (s.batchIds || []).map(b => b?.course)).filter(Boolean))];
+  const courses = [...new Set(students.flatMap((s) => (s.batches || []).map(b => b?.subject)).filter(Boolean))];
 
   const filtered = students.filter((s) => {
-    const mentorIds = (s.batchIds || []).map(b => b?.mentorId?._id?.toString()).filter(Boolean);
-    const batchCourses = (s.batchIds || []).map(b => b?.course).filter(Boolean);
+    const mentorIds    = (s.batches || []).map(b => b?.mentorId?._id?.toString()).filter(Boolean);
+    const batchSubjects = (s.batches || []).map(b => b?.subject).filter(Boolean);
     const status = s.isActive ? 'active' : 'inactive';
 
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase());
     const matchMentor = filterMentor === 'all' || mentorIds.includes(filterMentor);
     const matchStatus = filterStatus === 'all' || status === filterStatus;
-    const matchCourse = filterCourse === 'all' || batchCourses.includes(filterCourse);
+    const matchCourse = filterCourse === 'all' || batchSubjects.includes(filterCourse);
     return matchSearch && matchMentor && matchStatus && matchCourse;
   });
 
@@ -117,11 +117,11 @@ export default function OpsStudentsPage() {
           <div className="p-10 text-center text-gray-400">No students match your filters</div>
         ) : filtered.map((s) => {
           const initials      = s.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-          const batches       = s.batchIds || [];
-          const uniqueCourses = [...new Set(batches.map(b => b?.course).filter(Boolean))];
-          const courseLabel   = uniqueCourses.length === 0 ? '—' : uniqueCourses.length === 1 ? uniqueCourses[0] : `${uniqueCourses.length} courses`;
-          const batchLabel    = batches.length === 0 ? '—' : batches.length === 1 ? (batches[0]?.name || '—') : `${batches.length} batches`;
-          const mentors       = [...new Map(batches.map(b => b?.mentorId).filter(Boolean).map(m => [m._id?.toString(), m])).values()];
+          const batches         = s.batches || [];
+          const uniqueSubjects  = [...new Set(batches.map(b => b?.subject).filter(Boolean))];
+          const courseLabel     = uniqueSubjects.length === 0 ? '—' : uniqueSubjects.length === 1 ? uniqueSubjects[0] : `${uniqueSubjects.length} subjects`;
+          const batchLabel      = batches.length === 0 ? '—' : batches.length === 1 ? (batches[0]?.name || '—') : `${batches.length} batches`;
+          const mentors         = [...new Map(batches.map(b => b?.mentorId).filter(Boolean).map(m => [m._id?.toString(), m])).values()];
           const isActive      = s.isActive !== false;
           const progress      = s.progress || 0;
           const pc            = progress >= 80 ? '#10b981' : progress >= 50 ? '#f59e0b' : '#ef4444';

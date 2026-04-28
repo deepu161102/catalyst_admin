@@ -161,7 +161,15 @@ export default function CommunicationPage() {
     if (!user?._id) return;
     Promise.all([
       chatService.getConversations(user._id).then(r => r.data).catch(() => []),
-      studentService.getByMentor(user._id).then(r => r.data).catch(() => []),
+      studentService.getByMentor(user._id).then(r => {
+        const seen = new Set();
+        return (r.data || []).reduce((acc, item) => {
+          const s = item.student || item;
+          const key = s._id?.toString();
+          if (key && !seen.has(key)) { seen.add(key); acc.push(s); }
+          return acc;
+        }, []);
+      }).catch(() => []),
     ]).then(([convos, students]) => {
       const convoMap = new Map(convos.map(c => [c.userId?.toString(), c]));
       const merged = [...convos];

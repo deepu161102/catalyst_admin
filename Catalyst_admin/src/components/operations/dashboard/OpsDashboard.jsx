@@ -197,7 +197,7 @@ export default function OpsDashboard() {
                 <div key={batch._id} className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 last:border-b-0">
                   <div className="flex-[2]">
                     <p className="text-sm font-semibold text-gray-900">{batch.name}</p>
-                    <p className="text-xs text-gray-400">{batch.course}{batch.mentor?.name ? ` · ${batch.mentor.name}` : ''}</p>
+                    <p className="text-xs text-gray-400 capitalize">{batch.subject}{batch.mentor?.name ? ` · ${batch.mentor.name}` : ''}</p>
                   </div>
                   <div className="flex-1 text-center">
                     <p className="text-[13px] text-gray-700">{batch.studentCount ?? 0} students</p>

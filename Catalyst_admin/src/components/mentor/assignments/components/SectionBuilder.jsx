@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import QuestionEditor from './QuestionEditor';
+import BulkUploadModal from './BulkUploadModal';
 import { SECTION_META } from './sectionMeta';
 
 // ── Blank question factory ────────────────────────────────────
@@ -95,6 +96,7 @@ export default function SectionBuilder({ data, onChange }) {
   const [activeSection, setActiveSection] = useState('rw');
   const [activeModule, setActiveModule] = useState(1);
   const [editingQ, setEditingQ] = useState(null); // { sectionId, moduleNum, question }
+  const [bulkTarget, setBulkTarget] = useState(null); // sectionId string, null = closed
 
   // ── Derived state ──────────────────────────────────────────
   const currentSection = data.sections.find((s) => s.id === activeSection);
@@ -164,6 +166,31 @@ export default function SectionBuilder({ data, onChange }) {
     setEditingQ(null);
   };
 
+  const handleBulkImport = (questions) => {
+    updateSections((sections) =>
+      sections.map((s) => {
+        if (s.id !== bulkTarget) return s;
+        // Group imported questions by their module number (1 or 2)
+        const byModule = {};
+        questions.forEach((q) => {
+          const m = q.module === 2 ? 2 : 1;
+          (byModule[m] = byModule[m] || []).push(q);
+        });
+        return {
+          ...s,
+          modules: s.modules.map((m) => {
+            const incoming = byModule[m.number] || [];
+            if (!incoming.length) return m;
+            const startNum = m.questions.length + 1;
+            const numbered = incoming.map((q, i) => ({ ...q, number: startNum + i }));
+            return { ...m, questions: [...m.questions, ...numbered] };
+          }),
+        };
+      }),
+    );
+    setBulkTarget(null);
+  };
+
   // ── Total counts ──────────────────────────────────────────
   const sectionTotal = (sectionId) =>
     data.sections
@@ -181,40 +208,49 @@ export default function SectionBuilder({ data, onChange }) {
       </div>
 
       {/* ── Section tabs ── */}
-      <div className="flex gap-2 flex-wrap">
-        {data.sections.map((section) => {
-          const m = SECTION_META[section.id] || {};
-          const count = sectionTotal(section.id);
-          const active = activeSection === section.id;
-          return (
-            <button
-              key={section.id}
-              onClick={() => {
-                setActiveSection(section.id);
-                setActiveModule(1);
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border-2 transition-all"
-              style={
-                active
-                  ? { background: m.accent, borderColor: m.accent, color: '#fff', boxShadow: `0 4px 14px ${m.accent}44` }
-                  : { background: '#fff', borderColor: '#e5e7eb', color: '#6b7280' }
-              }
-            >
-              <span>{m.icon}</span>
-              <span>{section.name}</span>
-              <span
-                className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold"
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          {data.sections.map((section) => {
+            const m = SECTION_META[section.id] || {};
+            const count = sectionTotal(section.id);
+            const active = activeSection === section.id;
+            return (
+              <button
+                key={section.id}
+                onClick={() => {
+                  setActiveSection(section.id);
+                  setActiveModule(1);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border-2 transition-all"
                 style={
                   active
-                    ? { background: 'rgba(255,255,255,0.25)', color: '#fff' }
-                    : { background: '#f3f4f6', color: '#6b7280' }
+                    ? { background: m.accent, borderColor: m.accent, color: '#fff', boxShadow: `0 4px 14px ${m.accent}44` }
+                    : { background: '#fff', borderColor: '#e5e7eb', color: '#6b7280' }
                 }
               >
-                {count}
-              </span>
-            </button>
-          );
-        })}
+                <span>{m.icon}</span>
+                <span>{section.name}</span>
+                <span
+                  className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold"
+                  style={
+                    active
+                      ? { background: 'rgba(255,255,255,0.25)', color: '#fff' }
+                      : { background: '#f3f4f6', color: '#6b7280' }
+                  }
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => setBulkTarget(activeSection)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border-2 transition-all hover:-translate-y-0.5 shrink-0"
+          style={{ borderColor: meta.accent, color: meta.accent, background: '#fff' }}
+        >
+          📤 Bulk Upload Section
+        </button>
       </div>
 
       {/* ── Module tabs ── */}
@@ -323,6 +359,15 @@ export default function SectionBuilder({ data, onChange }) {
           sectionMeta={SECTION_META[editingQ.sectionId]}
           onSave={handleSave}
           onClose={() => setEditingQ(null)}
+        />
+      )}
+
+      {/* ── Bulk Upload Modal ── */}
+      {bulkTarget && (
+        <BulkUploadModal
+          sectionName={data.sections.find((s) => s.id === bulkTarget)?.name || ''}
+          onImport={handleBulkImport}
+          onClose={() => setBulkTarget(null)}
         />
       )}
     </div>

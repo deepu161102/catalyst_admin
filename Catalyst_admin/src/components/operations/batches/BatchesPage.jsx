@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { batchService, mentorService } from '../../../services/api';
+import { batchService } from '../../../services/api';
 
 const inputClass = 'w-full px-3 py-2.5 rounded-[10px] border-[1.5px] border-gray-200 text-[13px] outline-none bg-white focus:border-ops-primary transition-colors';
-const COURSES = ['English', 'Maths', 'English & Maths'];
+const SUBJECTS = ['english', 'maths'];
 const STATUS_STYLE = {
   active:    'bg-green-100 text-green-800',
   upcoming:  'bg-blue-100 text-blue-800',
@@ -11,14 +11,14 @@ const STATUS_STYLE = {
 };
 
 /* ── Create Batch Modal ─────────────────────────────────────── */
-function CreateBatchModal({ mentors, onSave, onClose }) {
-  const [form, setForm]     = useState({ name: '', course: '', mentorId: '', startDate: '', endDate: '', totalSessions: 60 });
+function CreateBatchModal({ mentors, students, onSave, onClose }) {
+  const [form, setForm]     = useState({ name: '', subject: '', mentorId: '', studentId: '', startDate: '', endDate: '', totalSessions: 60 });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const handleSave = async () => {
-    if (!form.name || !form.course || !form.mentorId) return;
+    if (!form.name || !form.subject || !form.mentorId || !form.studentId) return;
     setSaving(true);
     setError('');
     try {
@@ -53,10 +53,10 @@ function CreateBatchModal({ mentors, onSave, onClose }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-700">Course *</label>
-            <select className={inputClass} value={form.course} onChange={e => set('course', e.target.value)}>
-              <option value="">Select course...</option>
-              {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+            <label className="text-xs font-semibold text-gray-700">Subject *</label>
+            <select className={inputClass} value={form.subject} onChange={e => set('subject', e.target.value)}>
+              <option value="">Select subject...</option>
+              {SUBJECTS.map(s => <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
             </select>
           </div>
 
@@ -65,6 +65,14 @@ function CreateBatchModal({ mentors, onSave, onClose }) {
             <select className={inputClass} value={form.mentorId} onChange={e => set('mentorId', e.target.value)}>
               <option value="">Select mentor...</option>
               {mentors.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-700">Assign Student *</label>
+            <select className={inputClass} value={form.studentId} onChange={e => set('studentId', e.target.value)}>
+              <option value="">Select student...</option>
+              {students.map(s => <option key={s._id} value={s._id}>{s.name} — {s.email}</option>)}
             </select>
           </div>
 
@@ -88,7 +96,7 @@ function CreateBatchModal({ mentors, onSave, onClose }) {
         <div className="px-6 py-3.5 border-t border-gray-100 flex gap-2.5 justify-end">
           <button className="px-5 py-2 rounded-[10px] bg-gray-100 text-gray-700 font-semibold text-[13px]" onClick={onClose}>Cancel</button>
           <button
-            disabled={saving || !form.name || !form.course || !form.mentorId}
+            disabled={saving || !form.name || !form.subject || !form.mentorId || !form.studentId}
             className="px-5 py-2 rounded-[10px] bg-ops-primary text-white font-semibold text-[13px] disabled:opacity-50"
             onClick={handleSave}
           >
@@ -105,6 +113,7 @@ export default function BatchesPage() {
   const navigate = useNavigate();
   const [batches, setBatches]       = useState([]);
   const [mentors, setMentors]       = useState([]);
+  const [students, setStudents]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch]         = useState('');
@@ -112,8 +121,8 @@ export default function BatchesPage() {
 
   const loadData = () => {
     setLoading(true);
-    Promise.all([batchService.getAll(), mentorService.getAll()])
-      .then(([bRes, mRes]) => { setBatches(bRes.data); setMentors(mRes.data); })
+    Promise.all([batchService.getAll(), batchService.getMentors(), batchService.getStudents()])
+      .then(([bRes, mRes, sRes]) => { setBatches(bRes.data); setMentors(mRes.data); setStudents(sRes.data); })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   };
@@ -122,7 +131,7 @@ export default function BatchesPage() {
 
   const filtered = batches.filter(b =>
     b.name.toLowerCase().includes(search.toLowerCase()) ||
-    b.course.toLowerCase().includes(search.toLowerCase())
+    (b.subject || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const totalStudents = batches.reduce((a, b) => a + (b.studentCount || 0), 0);
@@ -192,7 +201,7 @@ export default function BatchesPage() {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <p className="text-[15px] font-bold text-gray-900">{batch.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{batch.course}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 capitalize">{batch.subject}</p>
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_STYLE[batch.status] || STATUS_STYLE.active}`}>
                     {batch.status}
@@ -242,6 +251,7 @@ export default function BatchesPage() {
       {showCreate && (
         <CreateBatchModal
           mentors={mentors}
+          students={students}
           onSave={() => { loadData(); setShowCreate(false); }}
           onClose={() => setShowCreate(false)}
         />

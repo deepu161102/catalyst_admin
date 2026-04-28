@@ -18,16 +18,16 @@ const req = (url, options = {}) => {
 };
 
 export const batchService = {
-  getAll:             (params = {})       => {
+  getAll:       (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return req(`/batches${qs ? `?${qs}` : ''}`);
   },
-  getById:            (id)               => req(`/batches/${id}`),
-  create:             (payload)          => req('/batches', { method: 'POST', body: JSON.stringify(payload) }),
-  update:             (id, payload)      => req(`/batches/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  remove:             (id)               => req(`/batches/${id}`, { method: 'DELETE' }),
-  addStudent:         (batchId, studentId)   => req(`/batches/${batchId}/students`, { method: 'POST', body: JSON.stringify({ studentId }) }),
-  removeStudent:      (batchId, studentId)   => req(`/batches/${batchId}/students/${studentId}`, { method: 'DELETE' }),
+  getById:      (id)          => req(`/batches/${id}`),
+  create:       (payload)     => req('/batches', { method: 'POST', body: JSON.stringify(payload) }),
+  update:       (id, payload) => req(`/batches/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  remove:       (id)          => req(`/batches/${id}`, { method: 'DELETE' }),
+  getMentors:   ()            => req('/batches/mentors'),
+  getStudents:  ()            => req('/batches/students'),
 };
 
 export const mentorService = {
@@ -48,13 +48,15 @@ export const studentService = {
 };
 
 export const assignmentService = {
-  getByMentor:   (mentorId)          => req(`/assignments?mentorId=${mentorId}`),
-  getById:       (id)                => req(`/assignments/${id}`),
-  create:        (payload)           => req('/assignments', { method: 'POST', body: JSON.stringify(payload) }),
-  update:        (id, payload)       => req(`/assignments/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  remove:        (id)                => req(`/assignments/${id}`, { method: 'DELETE' }),
-  setStatus:     (id, status)        => req(`/assignments/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-  enrollBatches: (id, batchIds)      => req(`/assignments/${id}/enroll`, { method: 'POST', body: JSON.stringify({ batchIds }) }),
+  getByMentor:   (mentorId)     => req(`/assignments?mentorId=${mentorId}`),
+  getById:       (id)           => req(`/assignments/${id}`),
+  getProgress:   (id)           => req(`/assignments/${id}/progress`),
+  create:        (payload)      => req('/assignments', { method: 'POST', body: JSON.stringify(payload) }),
+  update:        (id, payload)  => req(`/assignments/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  remove:        (id)           => req(`/assignments/${id}`, { method: 'DELETE' }),
+  setStatus:     (id, status)   => req(`/assignments/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  enrollBatches:  (id, batchIds) => req(`/assignments/${id}/enroll`, { method: 'POST', body: JSON.stringify({ batchIds }) }),
+  unenrollBatch:  (id, batchId)  => req(`/assignments/${id}/enroll/${batchId}`, { method: 'DELETE' }),
 };
 
 export const chatService = {
