@@ -37,6 +37,11 @@ import BatchDetailPage        from './components/operations/batches/BatchDetailP
 import OpsNotificationsPage    from './components/operations/notifications/OpsNotificationsPage';
 import OpsExploreTestsPage    from './components/operations/explore-tests/OpsExploreTestsPage';
 
+// ── Student routes ──────────────────────────────────────────
+import StudentLayout          from './components/student/StudentLayout';
+import StudentDashboard       from './components/student/dashboard/StudentDashboard';
+import StudentAssignmentsPage from './components/student/assignments/StudentAssignmentsPage';
+
 export default function App() {
   return (
     <DataProvider>
@@ -96,6 +101,21 @@ export default function App() {
                 <p className="text-sm">Advanced reporting and export features are in development.</p>
               </div>
             } />
+          </Route>
+
+          {/* ── Student routes (role guard) ── */}
+          <Route
+            path="/student"
+            element={
+              <ProtectedRoute requiredRole="student">
+                <StudentLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard"   element={<StudentDashboard />} />
+            <Route path="assignments" element={<StudentAssignmentsPage />} />
+            <Route path="profile"     element={<ProfilePage />} />
           </Route>
 
           {/* ── Catch-all ── */}

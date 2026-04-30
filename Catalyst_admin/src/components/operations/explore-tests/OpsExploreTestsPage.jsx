@@ -4,7 +4,7 @@
 // students who have no mentor or batch.
 // ============================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { opsAssignmentService } from '../../../services/api';
 import CreateAssignmentPage   from '../../mentor/assignments/CreateAssignmentPage';
@@ -84,7 +84,9 @@ function getTestTotals(assignment) {
 }
 
 // ── Test card ─────────────────────────────────────────────────
-function TestCard({ assignment, onEdit, onDelete, onTogglePublish, onProgress }) {
+// onHoverProgress: called on mouseEnter of the Progress button —
+// triggers a silent background prefetch so data is ready by click time.
+function TestCard({ assignment, onEdit, onDelete, onTogglePublish, onProgress, onHoverProgress }) {
   const { totalQ, totalScore } = getTestTotals(assignment);
   const isPublished = assignment.status === 'published';
   const typeLabel   = assignment.assignmentType === 'diagnostic' ? '🩺 Diagnostic' : '📝 Practice';
@@ -136,7 +138,12 @@ function TestCard({ assignment, onEdit, onDelete, onTogglePublish, onProgress })
           </button>
           {isPublished ? (
             <>
-              <button onClick={() => onProgress(assignment)} className="flex-1 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors min-w-[80px]">
+              {/* mouseEnter starts a silent prefetch so data is ready by the time the user clicks */}
+              <button
+                onClick={() => onProgress(assignment)}
+                onMouseEnter={() => onHoverProgress?.(assignment)}
+                className="flex-1 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors min-w-[80px]"
+              >
                 📊 Progress
               </button>
               <button onClick={() => onTogglePublish(assignment)} className="py-2 px-2.5 rounded-xl text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors">
@@ -209,6 +216,14 @@ export default function OpsExploreTestsPage() {
   const [editing,     setEditing]       = useState(null);
   const [progressFor, setProgressFor]   = useState(null);
   const [statusTab,   setStatusTab]     = useState('all');
+
+  // ── In-memory progress cache ────────────────────────────────
+  // Structure: { [assignmentId]: { data: normalisedAssignment, ts: Date.now() } }
+  // TTL: 60 seconds — stale entries are re-fetched transparently.
+  // The cache lives in a ref so it persists across renders without
+  // causing re-renders when it is written.
+  const progressCache = useRef({});
+  const CACHE_TTL     = 60_000; // 60 s
 
   const loadTests = useCallback(async () => {
     if (!user?._id) return;
@@ -315,15 +330,66 @@ export default function OpsExploreTestsPage() {
     }
   };
 
-  const openProgress = async (a) => {
-    try {
-      const res = await opsAssignmentService.getProgress(a._id);
-      setProgressFor(normalise(res.data));
+  // ── openProgress ─────────────────────────────────────────────
+  // OPTIMISED flow:
+  //   1. Navigate to progress view IMMEDIATELY using the card data
+  //      we already have (sections/questions). `attempts` is set to
+  //      `undefined` which tells AssignmentProgressPage to show a
+  //      skeleton while the real data loads in the background.
+  //   2. If a fresh cached result exists (< 60s old) → apply it
+  //      instantly — no network call needed.
+  //   3. Otherwise fetch in the background, update state when done.
+  const openProgress = useCallback(async (a) => {
+    const cached = progressCache.current[a._id];
+
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      // ── Cache hit: show instantly, no loading state needed ──
+      setProgressFor(cached.data);
       setView('progress');
+      return;
+    }
+
+    // ── Navigate immediately with skeleton ──────────────────
+    // Pass the assignment data we already have but with
+    // attempts=undefined so the progress page shows a skeleton.
+    setProgressFor({ ...a, attempts: undefined });
+    setView('progress');
+
+    // ── Background fetch ─────────────────────────────────────
+    try {
+      const res        = await opsAssignmentService.getProgress(a._id);
+      const normalised = normalise(res.data);
+      // Write to cache for future clicks
+      progressCache.current[a._id] = { data: normalised, ts: Date.now() };
+      // Replace skeleton data with real data
+      setProgressFor(normalised);
     } catch (e) {
       setError(e.message);
+      // Stay on progress page — user can hit Back; error shown at top
     }
-  };
+  }, []);
+
+  // ── prefetchProgress ─────────────────────────────────────────
+  // Called on mouseEnter of the "Progress" button.
+  // Silently starts fetching in the background so that by the time
+  // the user actually clicks the button, the response is already
+  // cached and the view switches with zero perceived latency.
+  const prefetchProgress = useCallback((a) => {
+    if (a.status !== 'published') return; // only published tests have progress
+    const cached = progressCache.current[a._id];
+    if (cached && Date.now() - cached.ts < CACHE_TTL) return; // already fresh
+
+    // Fire-and-forget — errors are swallowed (this is optional optimisation)
+    opsAssignmentService
+      .getProgress(a._id)
+      .then((res) => {
+        progressCache.current[a._id] = {
+          data: normalise(res.data),
+          ts:   Date.now(),
+        };
+      })
+      .catch(() => {}); // prefetch failure is silent; click will retry
+  }, []);
 
   if (view === 'builder') {
     return (
@@ -432,6 +498,7 @@ export default function OpsExploreTestsPage() {
                   onDelete={handleDelete}
                   onTogglePublish={handleTogglePublish}
                   onProgress={openProgress}
+                  onHoverProgress={prefetchProgress}
                 />
               ))}
             </div>

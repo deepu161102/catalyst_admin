@@ -70,6 +70,19 @@ export const opsAssignmentService = {
   setStatus: (id, status)   => req(`/assignments/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 };
 
+// ── Student assignment service ───────────────────────────────
+// Used by the student portal to load assignments the student
+// is enrolled in, along with their own attempt data.
+export const studentAssignmentService = {
+  // Returns array of { assignment, myAttempt } for the student.
+  // Backend endpoint: GET /assignments/my?studentId=:id
+  getMyAssignments: (studentId) => req(`/assignments/my?studentId=${studentId}`),
+
+  // Fallback: fetch full progress and let the frontend filter.
+  // Backend endpoint: GET /assignments/:id/progress
+  getProgress: (id) => req(`/assignments/${id}/progress`),
+};
+
 export const chatService = {
   getConversations: (userId)               => req(`/chat/conversations/${userId}`),
   getMessages:      (userId, otherId, page = 1) => req(`/chat/messages/${userId}/${otherId}?page=${page}`),

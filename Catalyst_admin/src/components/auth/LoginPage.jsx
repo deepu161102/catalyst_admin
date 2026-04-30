@@ -25,17 +25,24 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
+    // Maps each role to its home dashboard route
+    const roleHome = {
+      mentor:     '/mentor/dashboard',
+      operations: '/operations/dashboard',
+      student:    '/student/dashboard',
+    };
+
     if (isLogin) {
       const result = await login(email, password);
       if (result.success) {
-        navigate(result.role === 'mentor' ? '/mentor/dashboard' : '/operations/dashboard');
+        navigate(roleHome[result.role] || '/');
       } else {
         setError(result.error);
       }
     } else {
       const result = await register(name, email, password, role);
       if (result.success) {
-        navigate(result.role === 'mentor' ? '/mentor/dashboard' : '/operations/dashboard');
+        navigate(roleHome[result.role] || '/');
       } else {
         setError(result.error);
       }

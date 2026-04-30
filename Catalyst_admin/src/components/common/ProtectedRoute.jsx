@@ -21,9 +21,14 @@ export default function ProtectedRoute({ children, requiredRole }) {
   // Not logged in → redirect to login
   if (!user) return <Navigate to="/" replace />;
 
-  // Wrong role → redirect to their dashboard
+  // Wrong role → redirect to the user's own dashboard
   if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to={user.role === 'mentor' ? '/mentor/dashboard' : '/operations/dashboard'} replace />;
+    const roleHome = {
+      mentor:     '/mentor/dashboard',
+      operations: '/operations/dashboard',
+      student:    '/student/dashboard',
+    };
+    return <Navigate to={roleHome[user.role] || '/'} replace />;
   }
 
   return children;
