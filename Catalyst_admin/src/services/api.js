@@ -1,7 +1,7 @@
 const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const req = (url, options = {}) => {
-  const token = localStorage.getItem('catalyst_token');
+  const token = sessionStorage.getItem('catalyst_token');
   return fetch(`${BASE_URL}${url}`, {
     credentials: 'include',
     headers: {

@@ -7,8 +7,8 @@ const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // ── Core request function ────────────────────────────────────
 const request = async (endpoint, options = {}) => {
-    // Get token from localStorage
-    const token = localStorage.getItem('catalyst_token');
+    // Get token from sessionStorage (tab-scoped)
+    const token = sessionStorage.getItem('catalyst_token');
 
     // Build headers
     const headers = {
@@ -27,8 +27,8 @@ const request = async (endpoint, options = {}) => {
 
     // If token expired or invalid — log user out automatically
     if (response.status === 401) {
-        localStorage.removeItem('catalyst_token');
-        localStorage.removeItem('catalyst_user');
+        sessionStorage.removeItem('catalyst_token');
+        sessionStorage.removeItem('catalyst_user');
         window.location.href = '/';
         return;
     }

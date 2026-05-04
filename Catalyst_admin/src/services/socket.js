@@ -6,7 +6,7 @@ let socket = null;
 
 export const connectSocket = () => {
   if (socket?.connected) return socket;
-  const token = localStorage.getItem('catalyst_token');
+  const token = sessionStorage.getItem('catalyst_token');
   socket = io(SOCKET_URL, {
     auth: { token },
     withCredentials: true,

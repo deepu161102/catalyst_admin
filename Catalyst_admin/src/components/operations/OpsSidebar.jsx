@@ -50,9 +50,7 @@ export default function OpsSidebar({ collapsed, onToggle }) {
       {/* Logo */}
       <div className="h-16 px-4 flex items-center gap-2.5 border-b border-gray-100 shrink-0">
         {collapsed ? (
-          <div className="w-9 h-9 overflow-hidden shrink-0 flex items-center">
-            <img src={catalystLogo} alt="Catalyst" className="h-9 w-auto shrink-0" />
-          </div>
+          <img src={catalystLogo} alt="Catalyst" className="w-9 h-9 object-cover object-left shrink-0" />
         ) : (
           <div className="flex-1 flex flex-col gap-0.5 overflow-hidden min-w-0">
             <img src={catalystLogo} alt="Catalyst" className="h-[30px] w-auto object-contain object-left max-w-[150px]" />
